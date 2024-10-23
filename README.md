@@ -10,7 +10,7 @@ https://github.com/SWivid/F5-TTS
 * Press refresh to see it in the node
 
 You can use the examples here...
-[examples](examples/)
-[simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
+* [examples](examples/)
+* [simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
 
 
