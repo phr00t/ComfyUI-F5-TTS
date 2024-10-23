@@ -147,7 +147,7 @@ class F5TTSAudio:
         return audio
 
     def create(self, sample, speech):
-        Install.check_install()
+        # Install.check_install()
         input_dir = folder_paths.get_input_directory()
         txt_file = os.path.join(
             input_dir,
