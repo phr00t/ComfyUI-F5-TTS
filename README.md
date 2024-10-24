@@ -1,7 +1,7 @@
 
+ComfyUI node to make text to speech audio with your own voice.
 
-ComfyUI node for to make text to speech audio using F5-TTS
-https://github.com/SWivid/F5-TTS
+Using F5-TTS https://github.com/SWivid/F5-TTS
 
 ### Instructions
 
@@ -10,7 +10,7 @@ https://github.com/SWivid/F5-TTS
 * Press refresh to see it in the node
 
 You can use the examples here...
-* [examples](examples/)
+* [examples voices](examples/)
 * [simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
 
 
