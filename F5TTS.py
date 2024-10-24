@@ -134,7 +134,7 @@ class F5TTSAudio:
 
         if generated_audio_segments:
             final_wave = np.concatenate(generated_audio_segments)
-        wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete_on_close=False)
+        wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
         sf.write(wave_file.name, final_wave, final_sample_rate)
         wave_file.close()
 
