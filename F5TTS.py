@@ -141,7 +141,7 @@ class F5TTSAudio:
         waveform, sample_rate = torchaudio.load(wave_file.name)
         audio = {
             "waveform": waveform.unsqueeze(0),
-            "sample_rate": frame_rate
+            "sample_rate": sample_rate
             }
         os.unlink(wave_file.name)
         return audio
