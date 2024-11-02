@@ -28,6 +28,7 @@ class F5TTSAudio:
 
     def __init__(self):
         self.use_cli = False
+        self.voice_reg = re.compile(r"\{(\w+)\}")
 
     @staticmethod
     def get_txt_file_path(file):
@@ -94,24 +95,36 @@ class F5TTSAudio:
         ema_model = load_model(model_cls, model_cfg, ckpt_file, vocab_file)
         return ema_model
 
-    def load_voices(self, ref_audio, ref_text):
+    def load_voice(self, ref_audio, ref_text):
         main_voice = {"ref_audio": ref_audio, "ref_text": ref_text}
-        voices = {"main": main_voice}
-        for voice in voices:
-            voices[voice]["ref_audio"], voices[voice]["ref_text"] = preprocess_ref_audio_text( # noqa E501
-                voices[voice]["ref_audio"], voices[voice]["ref_text"]
-            )
-        return voices
 
-    def generate_audio(self, voices, model_obj, speech):
+        main_voice["ref_audio"], main_voice["ref_text"] = preprocess_ref_audio_text( # noqa E501
+            ref_audio, ref_text
+        )
+        return main_voice
+
+    def is_voice_name(self, word):
+        return self.voice_reg.match(word.strip())
+
+    def get_voice_names(self, chunks):
+        voice_names = {}
+        for text in chunks:
+            match = self.is_voice_name(text)
+            if match:
+                voice_names[match[1]] = True
+        return voice_names
+
+    def split_text(self, speech):
+        reg1 = r"(?=\{\w+\})"
+        return re.split(reg1, speech)
+
+    def generate_audio(self, voices, model_obj, chunks):
         frame_rate = 44100
         generated_audio_segments = []
-        reg1 = r"(?=\[\w+\])"
-        chunks = re.split(reg1, speech)
-        reg2 = r"\[(\w+)\]"
         pbar = ProgressBar(len(chunks))
         for text in chunks:
-            match = re.match(reg2, text)
+            print("text:"+text)
+            match = self.is_voice_name(text)
             if match:
                 voice = match[1]
             else:
@@ -120,11 +133,12 @@ class F5TTSAudio:
             if voice not in voices:
                 print(f"Voice {voice} not found, using main.")
                 voice = "main"
-            text = re.sub(reg2, "", text)
+            text = self.voice_reg.sub("", text)
             gen_text = text.strip()
             ref_audio = voices[voice]["ref_audio"]
             ref_text = voices[voice]["ref_text"]
             print(f"Voice: {voice}")
+            print("text:"+text)
             audio, final_sample_rate, spectragram = infer_process(
                 ref_audio, ref_text, gen_text, model_obj
                 )
@@ -135,7 +149,7 @@ class F5TTSAudio:
         if generated_audio_segments:
             final_wave = np.concatenate(generated_audio_segments)
         wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        sf.write(wave_file.name, final_wave, final_sample_rate)
+        sf.write(wave_file.name, final_wave, frame_rate)
         wave_file.close()
 
         waveform, sample_rate = torchaudio.load(wave_file.name)
@@ -146,8 +160,7 @@ class F5TTSAudio:
         os.unlink(wave_file.name)
         return audio
 
-    def create(self, sample, speech):
-        # Install.check_install()
+    def load_voice_from_file(self, sample):
         input_dir = folder_paths.get_input_directory()
         txt_file = os.path.join(
             input_dir,
@@ -157,19 +170,47 @@ class F5TTSAudio:
         with open(txt_file, 'r') as file:
             audio_text = file.read()
         audio_path = folder_paths.get_annotated_filepath(sample)
+        return self.load_voice(audio_path, audio_text)
+
+    def load_voices_from_files(self, sample, voice_names):
+        voices = {}
+        p = Path(sample)
+        for voice_name in voice_names:
+            if voice_name == "main":
+                continue
+            sample_file = os.path.join(
+                os.path.dirname(sample),
+                "{stem}.{voice_name}{suffix}".format(
+                    stem=p.stem,
+                    voice_name=voice_name
+                    suffix=p.suffix
+                    )
+                )
+            print("voice:"+voice_name+","+sample_file+','+sample)
+            voices[voice_name] = self.load_voice_from_file(sample_file)
+        return voices
+
+    def create(self, sample, speech):
+        # Install.check_install()
+        main_voice = self.load_voice_from_file(sample)
 
         if self.use_cli:
             # working...
             output_dir = tempfile.mkdtemp()
+            audio_path = folder_paths.get_annotated_filepath(sample)
             audio = self.create_with_cli(
-                audio_path, audio_text,
+                audio_path, main_voice["ref_text"],
                 speech, output_dir
                 )
             shutil.rmtree(output_dir)
         else:
             model_obj = self.load_model()
-            voices = self.load_voices(audio_path, audio_text)
-            audio = self.generate_audio(voices, model_obj, speech)
+            chunks = self.split_text(speech)
+            voice_names = self.get_voice_names(chunks)
+            voices = self.load_voices_from_files(sample, voice_names)
+            voices['main'] = main_voice
+
+            audio = self.generate_audio(voices, model_obj, chunks)
         return (audio, )
 
     @classmethod

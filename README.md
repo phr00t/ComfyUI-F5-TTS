@@ -14,3 +14,23 @@ You can use the examples here...
 * [simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
 
 
+### Multi voices...
+
+Put your sample voice files into the "input" folder like...
+```
+voice.wav
+voice.txt
+voice.deep.wav
+voice.deep.txt
+voice.chipmunk.wav
+voice.chipmunk.txt
+```
+
+Then you can use prompts for different voices...
+```
+{main} Hello World this is the end
+{deep} This is the narrator
+{chipmunk} Please, I need more helium
+```
+
+
