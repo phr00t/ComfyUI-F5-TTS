@@ -1,5 +1,5 @@
 
-from .F5TTS import F5TTSAudio 
+from .F5TTS import F5TTSAudio
 
 NODE_CLASS_MAPPINGS = {
     "F5TTSAudio": F5TTSAudio
