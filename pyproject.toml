@@ -1,7 +1,7 @@
 [project]
-name = "ComfyUI-F5-TTS"
+name = "comfyui-f5-tts"
 description = "Text to speech with F5-TTS"
-version = "1.0.1"
+version = "1.0.2"
 license = {text = "MIT License"}
 
 [project.urls]
@@ -10,5 +10,5 @@ Repository = "https://github.com/niknah/ComfyUI-F5-TTS"
 
 [tool.comfy]
 PublisherId = "niknah"
-DisplayName = "ComfyUI-F5-TTS"
+DisplayName = "ComfyUI F5-TTS"
 Icon = ""
