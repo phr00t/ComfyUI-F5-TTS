@@ -182,7 +182,7 @@ class F5TTSAudio:
                 os.path.dirname(sample),
                 "{stem}.{voice_name}{suffix}".format(
                     stem=p.stem,
-                    voice_name=voice_name
+                    voice_name=voice_name,
                     suffix=p.suffix
                     )
                 )
