@@ -10,8 +10,9 @@ Using F5-TTS https://github.com/SWivid/F5-TTS
 * Press refresh to see it in the node
 
 You can use the examples here...
-* [examples voices](examples/)
-* [simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
+* [Examples voices](examples/)
+* [Simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
+* [Workflow with input audio only, using OpenAI's Whisper to get the text](examples/F5TTS_whisper_workflow.json)
 
 
 ### Multi voices...

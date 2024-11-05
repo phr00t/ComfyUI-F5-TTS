@@ -12,6 +12,7 @@ import shutil
 import sys
 import numpy as np
 import re
+import io
 from comfy.utils import ProgressBar
 from cached_path import cached_path
 sys.path.append(Install.f5TTSPath)
@@ -24,11 +25,170 @@ from model.utils_infer import ( # noqa E402
 sys.path.pop()
 
 
-class F5TTSAudio:
+class F5TTSCreate:
+    voice_reg = re.compile(r"\{(\w+)\}")
 
+    def is_voice_name(self, word):
+        return self.voice_reg.match(word.strip())
+
+    def get_voice_names(self, chunks):
+        voice_names = {}
+        for text in chunks:
+            match = self.is_voice_name(text)
+            if match:
+                voice_names[match[1]] = True
+        return voice_names
+
+    def split_text(self, speech):
+        reg1 = r"(?=\{\w+\})"
+        return re.split(reg1, speech)
+
+    @staticmethod
+    def load_voice(ref_audio, ref_text):
+        main_voice = {"ref_audio": ref_audio, "ref_text": ref_text}
+
+        main_voice["ref_audio"], main_voice["ref_text"] = preprocess_ref_audio_text( # noqa E501
+            ref_audio, ref_text
+        )
+        return main_voice
+
+    def load_model(self):
+        model_cls = DiT
+        model_cfg = dict(
+            dim=1024, depth=22, heads=16,
+            ff_mult=2, text_dim=512, conv_layers=4
+            )
+        repo_name = "F5-TTS"
+        exp_name = "F5TTS_Base"
+        ckpt_step = 1200000
+        ckpt_file = str(cached_path(f"hf://SWivid/{repo_name}/{exp_name}/model_{ckpt_step}.safetensors")) # noqa E501
+        vocab_file = os.path.join(
+            Install.f5TTSPath, "data/Emilia_ZH_EN_pinyin/vocab.txt"
+            )
+        ema_model = load_model(model_cls, model_cfg, ckpt_file, vocab_file)
+        return ema_model
+
+    def generate_audio(self, voices, model_obj, chunks):
+        frame_rate = 44100
+        generated_audio_segments = []
+        pbar = ProgressBar(len(chunks))
+        for text in chunks:
+            print("text:"+text)
+            match = self.is_voice_name(text)
+            if match:
+                voice = match[1]
+            else:
+                print("No voice tag found, using main.")
+                voice = "main"
+            if voice not in voices:
+                print(f"Voice {voice} not found, using main.")
+                voice = "main"
+            text = F5TTSCreate.voice_reg.sub("", text)
+            gen_text = text.strip()
+            ref_audio = voices[voice]["ref_audio"]
+            ref_text = voices[voice]["ref_text"]
+            print(f"Voice: {voice}")
+            print("text:"+text)
+            audio, final_sample_rate, spectragram = infer_process(
+                ref_audio, ref_text, gen_text, model_obj
+                )
+            generated_audio_segments.append(audio)
+            frame_rate = final_sample_rate
+            pbar.update(1)
+
+        if generated_audio_segments:
+            final_wave = np.concatenate(generated_audio_segments)
+        wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        sf.write(wave_file.name, final_wave, frame_rate)
+        wave_file.close()
+
+        waveform, sample_rate = torchaudio.load(wave_file.name)
+        audio = {
+            "waveform": waveform.unsqueeze(0),
+            "sample_rate": sample_rate
+            }
+        os.unlink(wave_file.name)
+        return audio
+
+    def create(self, voices, chunks):
+        model_obj = self.load_model()
+        return self.generate_audio(voices, model_obj, chunks)
+
+
+class F5TTSAudioInputs:
+    def __init__(self):
+        self.wave_file = None
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "sample_audio": ("AUDIO",),
+                "sample_text": ("STRING", {"default": "Text of sample_audio"}),
+                "speech": ("STRING", {
+                    "multiline": True,
+                    "default": "This is what I want to say"
+                }),
+            },
+        }
+
+    CATEGORY = "audio"
+
+    RETURN_TYPES = ("AUDIO", )
+    FUNCTION = "create"
+
+    def load_voice_from_input(self, sample_audio, sample_text):
+        self.wave_file = tempfile.NamedTemporaryFile(
+            suffix=".wav", delete=False
+            )
+        for (batch_number, waveform) in enumerate(
+                sample_audio["waveform"].cpu()):
+            buff = io.BytesIO()
+            torchaudio.save(
+                buff, waveform, sample_audio["sample_rate"], format="WAV"
+                )
+            with open(self.wave_file.name, 'wb') as f:
+                f.write(buff.getbuffer())
+            break
+        r = F5TTSCreate.load_voice(self.wave_file.name, sample_text)
+        return r
+
+    def remove_wave_file(self):
+        if self.wave_file is not None:
+            try:
+                os.unlink(self.wave_file.name)
+                self.wave_file = None
+            except Exception as e:
+                print("F5TTS: Cannot remove? "+self.wave_file.name)
+                print(e)
+
+    def create(self, sample_audio, sample_text, speech):
+        try:
+            main_voice = self.load_voice_from_input(sample_audio, sample_text)
+
+            f5ttsCreate = F5TTSCreate()
+
+            voices = {}
+            chunks = f5ttsCreate.split_text(speech)
+            voices['main'] = main_voice
+
+            audio = f5ttsCreate.create(voices, chunks)
+        finally:
+            self.remove_wave_file()
+        return (audio, )
+
+    @classmethod
+    def IS_CHANGED(s, sample_audio, sample_text, speech):
+        m = hashlib.sha256()
+        m.update(sample_text)
+        m.update(sample_audio)
+        m.update(speech)
+        return m.digest().hex()
+
+
+class F5TTSAudio:
     def __init__(self):
         self.use_cli = False
-        self.voice_reg = re.compile(r"\{(\w+)\}")
 
     @staticmethod
     def get_txt_file_path(file):
@@ -46,12 +206,14 @@ class F5TTSAudio:
             txtFile = F5TTSAudio.get_txt_file_path(file)
             if os.path.isfile(os.path.join(input_dir, txtFile)):
                 filesWithTxt.append(file)
+        filesWithTxt = sorted(filesWithTxt)
+
         return {
             "required": {
-                "sample": (sorted(filesWithTxt), {"audio_upload": True}),
+                "sample": (filesWithTxt, {"audio_upload": True}),
                 "speech": ("STRING", {
                     "multiline": True,
-                    "default": "Hello World"
+                    "default": "This is what I want to say"
                 }),
             }
         }
@@ -79,87 +241,6 @@ class F5TTSAudio:
         audio = {"waveform": waveform.unsqueeze(0), "sample_rate": frame_rate}
         return audio
 
-    def load_model(self):
-        model_cls = DiT
-        model_cfg = dict(
-            dim=1024, depth=22, heads=16,
-            ff_mult=2, text_dim=512, conv_layers=4
-            )
-        repo_name = "F5-TTS"
-        exp_name = "F5TTS_Base"
-        ckpt_step = 1200000
-        ckpt_file = str(cached_path(f"hf://SWivid/{repo_name}/{exp_name}/model_{ckpt_step}.safetensors")) # noqa E501
-        vocab_file = os.path.join(
-            Install.f5TTSPath, "data/Emilia_ZH_EN_pinyin/vocab.txt"
-            )
-        ema_model = load_model(model_cls, model_cfg, ckpt_file, vocab_file)
-        return ema_model
-
-    def load_voice(self, ref_audio, ref_text):
-        main_voice = {"ref_audio": ref_audio, "ref_text": ref_text}
-
-        main_voice["ref_audio"], main_voice["ref_text"] = preprocess_ref_audio_text( # noqa E501
-            ref_audio, ref_text
-        )
-        return main_voice
-
-    def is_voice_name(self, word):
-        return self.voice_reg.match(word.strip())
-
-    def get_voice_names(self, chunks):
-        voice_names = {}
-        for text in chunks:
-            match = self.is_voice_name(text)
-            if match:
-                voice_names[match[1]] = True
-        return voice_names
-
-    def split_text(self, speech):
-        reg1 = r"(?=\{\w+\})"
-        return re.split(reg1, speech)
-
-    def generate_audio(self, voices, model_obj, chunks):
-        frame_rate = 44100
-        generated_audio_segments = []
-        pbar = ProgressBar(len(chunks))
-        for text in chunks:
-            print("text:"+text)
-            match = self.is_voice_name(text)
-            if match:
-                voice = match[1]
-            else:
-                print("No voice tag found, using main.")
-                voice = "main"
-            if voice not in voices:
-                print(f"Voice {voice} not found, using main.")
-                voice = "main"
-            text = self.voice_reg.sub("", text)
-            gen_text = text.strip()
-            ref_audio = voices[voice]["ref_audio"]
-            ref_text = voices[voice]["ref_text"]
-            print(f"Voice: {voice}")
-            print("text:"+text)
-            audio, final_sample_rate, spectragram = infer_process(
-                ref_audio, ref_text, gen_text, model_obj
-                )
-            generated_audio_segments.append(audio)
-            frame_rate = final_sample_rate
-            pbar.update(1)
-
-        if generated_audio_segments:
-            final_wave = np.concatenate(generated_audio_segments)
-        wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        sf.write(wave_file.name, final_wave, frame_rate)
-        wave_file.close()
-
-        waveform, sample_rate = torchaudio.load(wave_file.name)
-        audio = {
-            "waveform": waveform.unsqueeze(0),
-            "sample_rate": sample_rate
-            }
-        os.unlink(wave_file.name)
-        return audio
-
     def load_voice_from_file(self, sample):
         input_dir = folder_paths.get_input_directory()
         txt_file = os.path.join(
@@ -170,7 +251,7 @@ class F5TTSAudio:
         with open(txt_file, 'r') as file:
             audio_text = file.read()
         audio_path = folder_paths.get_annotated_filepath(sample)
-        return self.load_voice(audio_path, audio_text)
+        return F5TTSCreate.load_voice(audio_path, audio_text)
 
     def load_voices_from_files(self, sample, voice_names):
         voices = {}
@@ -194,6 +275,7 @@ class F5TTSAudio:
         # Install.check_install()
         main_voice = self.load_voice_from_file(sample)
 
+        f5ttsCreate = F5TTSCreate()
         if self.use_cli:
             # working...
             output_dir = tempfile.mkdtemp()
@@ -204,21 +286,23 @@ class F5TTSAudio:
                 )
             shutil.rmtree(output_dir)
         else:
-            model_obj = self.load_model()
-            chunks = self.split_text(speech)
-            voice_names = self.get_voice_names(chunks)
+            chunks = f5ttsCreate.split_text(speech)
+            voice_names = f5ttsCreate.get_voice_names(chunks)
             voices = self.load_voices_from_files(sample, voice_names)
             voices['main'] = main_voice
 
-            audio = self.generate_audio(voices, model_obj, chunks)
+            audio = f5ttsCreate.create(voices, chunks)
         return (audio, )
 
     @classmethod
     def IS_CHANGED(s, sample, speech):
         m = hashlib.sha256()
         audio_path = folder_paths.get_annotated_filepath(sample)
+        audio_txt_path = F5TTSAudio.get_txt_file_path(audio_path)
         last_modified_timestamp = os.path.getmtime(audio_path)
+        txt_last_modified_timestamp = os.path.getmtime(audio_txt_path)
         m.update(audio_path)
         m.update(str(last_modified_timestamp))
+        m.update(str(txt_last_modified_timestamp))
         m.update(speech)
         return m.digest().hex()
