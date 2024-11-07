@@ -3,6 +3,7 @@ import os.path
 from .Install import Install
 import subprocess
 import wave
+import torch
 import torchaudio
 import hashlib
 import folder_paths
@@ -27,6 +28,7 @@ sys.path.pop()
 
 class F5TTSCreate:
     voice_reg = re.compile(r"\{(\w+)\}")
+    tooltip_seed = "Seed. -1 = random"
 
     def is_voice_name(self, word):
         return self.voice_reg.match(word.strip())
@@ -68,7 +70,12 @@ class F5TTSCreate:
         ema_model = load_model(model_cls, model_cfg, ckpt_file, vocab_file)
         return ema_model
 
-    def generate_audio(self, voices, model_obj, chunks):
+    def generate_audio(self, voices, model_obj, chunks, seed):
+        if seed >= 0:
+            torch.manual_seed(seed)
+        else:
+            torch.random.seed()
+
         frame_rate = 44100
         generated_audio_segments = []
         pbar = ProgressBar(len(chunks))
@@ -110,9 +117,9 @@ class F5TTSCreate:
         os.unlink(wave_file.name)
         return audio
 
-    def create(self, voices, chunks):
+    def create(self, voices, chunks, seed=-1):
         model_obj = self.load_model()
-        return self.generate_audio(voices, model_obj, chunks)
+        return self.generate_audio(voices, model_obj, chunks, seed)
 
 
 class F5TTSAudioInputs:
@@ -128,6 +135,11 @@ class F5TTSAudioInputs:
                 "speech": ("STRING", {
                     "multiline": True,
                     "default": "This is what I want to say"
+                }),
+                "seed": ("INT", {
+                    "display": "number", "step": 1,
+                    "default": 1, "min": -1,
+                    "tooltip": F5TTSCreate.tooltip_seed,
                 }),
             },
         }
@@ -162,7 +174,7 @@ class F5TTSAudioInputs:
                 print("F5TTS: Cannot remove? "+self.wave_file.name)
                 print(e)
 
-    def create(self, sample_audio, sample_text, speech):
+    def create(self, sample_audio, sample_text, speech, seed=-1):
         try:
             main_voice = self.load_voice_from_input(sample_audio, sample_text)
 
@@ -172,17 +184,18 @@ class F5TTSAudioInputs:
             chunks = f5ttsCreate.split_text(speech)
             voices['main'] = main_voice
 
-            audio = f5ttsCreate.create(voices, chunks)
+            audio = f5ttsCreate.create(voices, chunks, seed)
         finally:
             self.remove_wave_file()
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample_audio, sample_text, speech):
+    def IS_CHANGED(s, sample_audio, sample_text, speech, seed):
         m = hashlib.sha256()
         m.update(sample_text)
         m.update(sample_audio)
         m.update(speech)
+        m.update(seed)
         return m.digest().hex()
 
 
@@ -214,6 +227,11 @@ class F5TTSAudio:
                 "speech": ("STRING", {
                     "multiline": True,
                     "default": "This is what I want to say"
+                }),
+                "seed": ("INT", {
+                    "display": "number", "step": 1,
+                    "default": 1, "min": -1,
+                    "tooltip": F5TTSCreate.tooltip_seed,
                 }),
             }
         }
@@ -271,7 +289,7 @@ class F5TTSAudio:
             voices[voice_name] = self.load_voice_from_file(sample_file)
         return voices
 
-    def create(self, sample, speech):
+    def create(self, sample, speech, seed=-1):
         # Install.check_install()
         main_voice = self.load_voice_from_file(sample)
 
@@ -291,11 +309,11 @@ class F5TTSAudio:
             voices = self.load_voices_from_files(sample, voice_names)
             voices['main'] = main_voice
 
-            audio = f5ttsCreate.create(voices, chunks)
+            audio = f5ttsCreate.create(voices, chunks, seed)
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample, speech):
+    def IS_CHANGED(s, sample, speech, seed):
         m = hashlib.sha256()
         audio_path = folder_paths.get_annotated_filepath(sample)
         audio_txt_path = F5TTSAudio.get_txt_file_path(audio_path)
@@ -305,4 +323,5 @@ class F5TTSAudio:
         m.update(str(last_modified_timestamp))
         m.update(str(txt_last_modified_timestamp))
         m.update(speech)
+        m.update(seed)
         return m.digest().hex()
