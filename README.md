@@ -13,6 +13,8 @@ You can use the examples here...
 * [Examples voices](examples/)
 * [Simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
 * [Workflow with input audio only, using OpenAI's Whisper to get the text](examples/F5TTS_whisper_workflow.json)
+* [Workflow with all features](examples/F5TTS-test-all.json)
+
 
 
 ### Multi voices...
