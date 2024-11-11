@@ -108,7 +108,6 @@ class F5TTSCreate:
         generated_audio_segments = []
         pbar = ProgressBar(len(chunks))
         for text in chunks:
-            print("text:"+text)
             match = self.is_voice_name(text)
             if match:
                 voice = match[1]
@@ -120,6 +119,9 @@ class F5TTSCreate:
                 voice = "main"
             text = F5TTSCreate.voice_reg.sub("", text)
             gen_text = text.strip()
+            if gen_text == "":
+                print(f"No text for {voice}, skip")
+                continue
             ref_audio = voices[voice]["ref_audio"]
             ref_text = voices[voice]["ref_text"]
             print(f"Voice: {voice}")
