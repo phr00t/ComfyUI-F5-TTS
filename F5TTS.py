@@ -27,7 +27,7 @@ sys.path.pop()
 
 
 class F5TTSCreate:
-    voice_reg = re.compile(r"\{(\w+)\}")
+    voice_reg = re.compile(r"\{([^\}]+)\}")
     model_types = ["F5", "E2"]
     tooltip_seed = "Seed. -1 = random"
 
@@ -43,7 +43,7 @@ class F5TTSCreate:
         return voice_names
 
     def split_text(self, speech):
-        reg1 = r"(?=\{\w+\})"
+        reg1 = r"(?=\{[^\}]+\})"
         return re.split(reg1, speech)
 
     @staticmethod
