@@ -154,7 +154,7 @@ class F5TTSCreate:
 
 class F5TTSAudioInputs:
     def __init__(self):
-        self.wave_file = None
+        self.wave_file_name = None
 
     @classmethod
     def INPUT_TYPES(s):
@@ -181,28 +181,36 @@ class F5TTSAudioInputs:
     FUNCTION = "create"
 
     def load_voice_from_input(self, sample_audio, sample_text):
-        self.wave_file = tempfile.NamedTemporaryFile(
+        wave_file = tempfile.NamedTemporaryFile(
             suffix=".wav", delete=False
             )
+        self.wave_file_name = wave_file.name
+        wave_file.close()
+
+        hasAudio = False
         for (batch_number, waveform) in enumerate(
-                sample_audio["waveform"].cpu()):
+            sample_audio["waveform"].cpu()
+        ):
             buff = io.BytesIO()
             torchaudio.save(
                 buff, waveform, sample_audio["sample_rate"], format="WAV"
                 )
-            with open(self.wave_file.name, 'wb') as f:
+            with open(self.wave_file_name, 'wb') as f:
                 f.write(buff.getbuffer())
+            hasAudio = True
             break
-        r = F5TTSCreate.load_voice(self.wave_file.name, sample_text)
+        if not hasAudio:
+            raise FileNotFoundError("No audio input")
+        r = F5TTSCreate.load_voice(self.wave_file_name, sample_text)
         return r
 
     def remove_wave_file(self):
-        if self.wave_file is not None:
+        if self.wave_file_name is not None:
             try:
-                os.unlink(self.wave_file.name)
-                self.wave_file = None
+                os.unlink(self.wave_file_name)
+                self.wave_file_name = None
             except Exception as e:
-                print("F5TTS: Cannot remove? "+self.wave_file.name)
+                print("F5TTS: Cannot remove? "+self.wave_file_name)
                 print(e)
 
     def create(self, sample_audio, sample_text, speech, seed=-1, model="F5"):
