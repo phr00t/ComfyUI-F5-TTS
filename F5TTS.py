@@ -221,12 +221,13 @@ class F5TTSAudioInputs:
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample_audio, sample_text, speech, seed):
+    def IS_CHANGED(s, sample_audio, sample_text, speech, seed, model):
         m = hashlib.sha256()
         m.update(sample_text)
         m.update(sample_audio)
         m.update(speech)
         m.update(seed)
+        m.update(model)
         return m.digest().hex()
 
 
@@ -345,7 +346,7 @@ class F5TTSAudio:
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample, speech, seed):
+    def IS_CHANGED(s, sample, speech, seed, model):
         m = hashlib.sha256()
         audio_path = folder_paths.get_annotated_filepath(sample)
         audio_txt_path = F5TTSAudio.get_txt_file_path(audio_path)
@@ -356,4 +357,5 @@ class F5TTSAudio:
         m.update(str(txt_last_modified_timestamp))
         m.update(speech)
         m.update(seed)
+        m.update(model)
         return m.digest().hex()
