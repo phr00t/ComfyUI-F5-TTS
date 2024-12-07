@@ -36,4 +36,7 @@ Then you can use prompts for different voices...
 {chipmunk} Please, I need more helium
 ```
 
+### Custom models...
+
+Uou can put the model & vocab txt files into "models/checkpoints/F5-TTS" folder if you have any more models.  Name the .txt vocab file and the .pt model file the same names.  Press "refresh" and it should appear under the "model" selection.
 
