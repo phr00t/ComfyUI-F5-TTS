@@ -29,7 +29,7 @@ sys.path.pop()
 
 class F5TTSCreate:
     voice_reg = re.compile(r"\{([^\}]+)\}")
-    model_types = ["F5", "F5-JP", "F5-FR", "E2"]
+    model_types = ["F5", "F5-HI", "F5-JP", "F5-FR", "E2"]
     vocoder_types = ["vocos", "bigvgan"]
     tooltip_seed = "Seed. -1 = random"
 
@@ -87,6 +87,7 @@ class F5TTSCreate:
     def get_model_funcs(self):
         return {
             "F5": self.load_f5_model,
+            "F5-HI": self.load_f5_model_hi,
             "F5-JP": self.load_f5_model_jp,
             "F5-FR": self.load_f5_model_fr,
             "E2": self.load_e2_model,
@@ -170,13 +171,29 @@ class F5TTSCreate:
             return None
         return str(cached_path(url)) # noqa E501
 
-    def load_f5_model_url(self, url, vocoder_name, vocab_url=None):
-        vocoder = self.load_vocoder(vocoder_name)
-        model_cls = DiT
+    def load_f5_model_hi(self, vocoder):
         model_cfg = dict(
-            dim=1024, depth=22, heads=16,
+            dim=768, depth=18, heads=12,
             ff_mult=2, text_dim=512, conv_layers=4
             )
+        return self.load_f5_model_url(
+            "hf://SPRINGLab/F5-Hindi-24KHz/model_2500000.safetensors",
+            "vocos",
+            "hf://SPRINGLab/F5-Hindi-24KHz/vocab.txt",
+            model_cfg=model_cfg,
+            )
+
+    def load_f5_model_url(
+        self, url, vocoder_name, vocab_url=None, model_cfg=None
+    ):
+        vocoder = self.load_vocoder(vocoder_name)
+        model_cls = DiT
+        if model_cfg is None:
+            model_cfg = dict(
+                dim=1024, depth=22, heads=16,
+                ff_mult=2, text_dim=512, conv_layers=4
+                )
+
         ckpt_file = str(self.cached_path(url)) # noqa E501
 
         if vocab_url is None:
