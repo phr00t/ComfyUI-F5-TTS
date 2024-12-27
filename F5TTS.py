@@ -378,7 +378,7 @@ class F5TTSAudio:
 
     @classmethod
     def INPUT_TYPES(s):
-        input_dir = folder_paths.get_input_directory()
+        input_dir = os.path.join(folder_paths.get_input_directory(), "voices/")
         files = folder_paths.filter_files_content_types(
             os.listdir(input_dir), ["audio", "video"]
             )
@@ -432,7 +432,7 @@ class F5TTSAudio:
         return audio
 
     def load_voice_from_file(self, sample):
-        input_dir = folder_paths.get_input_directory()
+        input_dir = os.path.join(folder_paths.get_input_directory(), "voices/")
         txt_file = os.path.join(
             input_dir,
             F5TTSCreate.get_txt_file_path(sample)
