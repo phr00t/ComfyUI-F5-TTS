@@ -21,17 +21,17 @@ You can use the examples here...
 
 Put your sample voice files into the "input/voices" folder like...
 ```
-voice.wav
-voice.txt
-voice.deep.wav
-voice.deep.txt
-voice.chipmunk.wav
-voice.chipmunk.txt
+bob.wav
+bob.txt
+deep.wav
+deep.txt
+chipmunk.wav
+chipmunk.txt
 ```
 
 Then you can use prompts for different voices...
 ```
-{main} Hello World this is the end
+{bob} Hello World this is the end
 {deep} This is the narrator
 {chipmunk} Please, I need more helium
 ```
