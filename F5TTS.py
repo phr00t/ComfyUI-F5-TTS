@@ -432,7 +432,9 @@ class F5TTSAudio:
         return audio
 
     def load_voice_from_file(self, sample):
-        input_dir = os.path.join(folder_paths.get_input_directory(), "voices/")
+        if "voices" not in sample:
+            sample = os.path.join("voices/", sample)
+        input_dir = folder_paths.get_input_directory()
         txt_file = os.path.join(
             input_dir,
             F5TTSCreate.get_txt_file_path(sample)
@@ -453,7 +455,7 @@ class F5TTSAudio:
                 continue
             sample_file = os.path.join(
                 os.path.dirname(sample),
-                "{stem}.{voice_name}{suffix}".format(
+                "{voice_name}{suffix}".format(
                     stem=p.stem,
                     voice_name=voice_name,
                     suffix=p.suffix
