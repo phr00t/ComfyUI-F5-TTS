@@ -48,3 +48,16 @@ Then you can use prompts for different voices...
 
  * F5-TTS [cuts your voice sample off at 15 secs](https://github.com/SWivid/F5-TTS/blob/8898d05e374bcb8d3fc0b1286037e95df61f491f/src/f5_tts/infer/utils_infer.py#L315).
 
+
+### Install from git
+
+It's best to install from ComfyUI-manager because it will update all your custom\_nodes when you click "update all".  With git, you will have to update manually.
+
+Clone this repository into custom\_nodes and run this to install from git
+```
+cd custom_nodes/ComfyUI-F5-TTS
+git submodule update --init --recursive
+pip install -r requirements.txt
+```
+
+
