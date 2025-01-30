@@ -13,6 +13,14 @@ class Install:
     @staticmethod
     def install():
         subprocess.run(
+            ['git', 'submodule', 'update', '--init', '--recursive'],
+            cwd=os.path.dirname(__file__),
+            shell=True,
+            )
+
+    @staticmethod
+    def clone():
+        subprocess.run(
             [
                 "git", "clone", "--depth", "1",
                 "https://github.com/SWivid/F5-TTS",
