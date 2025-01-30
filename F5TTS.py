@@ -16,7 +16,7 @@ import re
 import io
 from comfy.utils import ProgressBar
 from cached_path import cached_path
-sys.path.append(os.path.join(Install.f5TTSPath, "src"))
+sys.path.insert(0, os.path.join(Install.f5TTSPath, "src"))
 from f5_tts.model import DiT,UNetT # noqa E402
 from f5_tts.infer.utils_infer import ( # noqa E402
     load_model,
