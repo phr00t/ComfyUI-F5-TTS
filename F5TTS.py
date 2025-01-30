@@ -26,6 +26,8 @@ from f5_tts.infer.utils_infer import ( # noqa E402
 )
 sys.path.pop()
 
+Install.check_install()
+
 
 class F5TTSCreate:
     voice_reg = re.compile(r"\{([^\}]+)\}")
@@ -299,7 +301,9 @@ class F5TTSAudioInputs:
                     "tooltip": F5TTSCreate.tooltip_seed,
                 }),
                 "model": (model_types,),
-                # "vocoder": (F5TTSCreate.vocoder_types,),
+                "vocoder": (F5TTSCreate.vocoder_types, {
+                    "tooltip": "Most models are usally vocos",
+                }),
             },
         }
 
@@ -342,9 +346,10 @@ class F5TTSAudioInputs:
                 print(e)
 
     def create(
-        self, sample_audio, sample_text, speech, seed=-1, model="F5"
+        self,
+        sample_audio, sample_text,
+        speech, seed=-1, model="F5", vocoder="vocos"
     ):
-        vocoder = "vocos"
         try:
             main_voice = self.load_voice_from_input(sample_audio, sample_text)
 
@@ -362,13 +367,14 @@ class F5TTSAudioInputs:
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample_audio, sample_text, speech, seed, model):
+    def IS_CHANGED(s, sample_audio, sample_text, speech, seed, model, vocoder):
         m = hashlib.sha256()
         m.update(sample_text)
         m.update(sample_audio)
         m.update(speech)
         m.update(seed)
         m.update(model)
+        m.update(vocoder)
         return m.digest().hex()
 
 
@@ -404,7 +410,9 @@ class F5TTSAudio:
                     "tooltip": F5TTSCreate.tooltip_seed,
                 }),
                 "model": (model_types,),
-                # "vocoder": (F5TTSCreate.vocoder_types,),
+                "vocoder": (F5TTSCreate.vocoder_types, {
+                    "tooltip": "Most models are usally vocos",
+                }),
             }
         }
 
@@ -463,8 +471,8 @@ class F5TTSAudio:
             voices[voice_name] = self.load_voice_from_file(sample_file)
         return voices
 
-    def create(self, sample, speech, seed=-2, model="F5"):
-        vocoder = "vocos"
+    def create(self, sample, speech, seed=-2, model="F5", vocoder="vocos"):
+        # vocoder = "vocos"
         # Install.check_install()
         main_voice = self.load_voice_from_file(sample)
 
@@ -488,7 +496,7 @@ class F5TTSAudio:
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample, speech, seed, model):
+    def IS_CHANGED(s, sample, speech, seed, model, vocoder):
         m = hashlib.sha256()
         audio_path = folder_paths.get_annotated_filepath(sample)
         audio_txt_path = F5TTSCreate.get_txt_file_path(audio_path)
@@ -500,4 +508,5 @@ class F5TTSAudio:
         m.update(speech)
         m.update(seed)
         m.update(model)
+        m.update(vocoder)
         return m.digest().hex()
