@@ -16,7 +16,8 @@ import re
 import io
 from comfy.utils import ProgressBar
 from cached_path import cached_path
-sys.path.insert(0, os.path.join(Install.f5TTSPath, "src"))
+f5tts_path = os.path.join(Install.f5TTSPath, "src")
+sys.path.insert(0, f5tts_path)
 from f5_tts.model import DiT,UNetT # noqa E402
 from f5_tts.infer.utils_infer import ( # noqa E402
     load_model,
@@ -24,7 +25,7 @@ from f5_tts.infer.utils_infer import ( # noqa E402
     preprocess_ref_audio_text,
     infer_process,
 )
-sys.path.pop()
+sys.path.remove(f5tts_path)
 
 Install.check_install()
 
@@ -102,7 +103,10 @@ class F5TTSCreate:
             os.path.join(Install.f5TTSPath, "checkpoints/bigvgan_v2_24khz_100band_256x") # noqa E501
 
     def load_vocoder(self,  vocoder_name):
-        return load_vocoder(vocoder_name=vocoder_name)
+        sys.path.insert(0, f5tts_path)
+        vocoder = load_vocoder(vocoder_name=vocoder_name)
+        sys.path.remove(f5tts_path)
+        return vocoder
 
     def load_model(self, model, vocoder_name):
         model_funcs = self.get_model_funcs()
