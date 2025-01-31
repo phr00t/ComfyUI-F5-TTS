@@ -61,6 +61,21 @@ Then you can use prompts for different voices...
 ```
 
 
+### BigVGAN models.
+
+To use BigVGAN, you have to add a little dot to make it work with ComfyUI...
+
+In the file `custom_nodes/ComfyUI-F5-TTS/F5-TTS/src/third_party/BigVGAN/bigvgan.py`
+
+Add a little dot on the line at the top that says...
+
+`from utils import init_weights, get_padding`
+
+so it's becomes...
+
+`from .utils import init_weights, get_padding`
+
+
 ### Tips...
 
  * F5-TTS [cuts your voice sample off at 15 secs](https://github.com/SWivid/F5-TTS/blob/8898d05e374bcb8d3fc0b1286037e95df61f491f/src/f5_tts/infer/utils_infer.py#L315).
