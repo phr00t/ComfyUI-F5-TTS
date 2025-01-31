@@ -389,9 +389,20 @@ class F5TTSAudio:
     @classmethod
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
-        files = folder_paths.filter_files_content_types(
-            os.listdir(input_dir), ["audio", "video"]
-            )
+        input_dirs = [
+                "",
+                'audio',
+                'F5-TTS',
+        ]
+        files = []
+        for dir_short in input_dirs:
+            d = os.path.join(input_dir, dir_short)
+            if os.path.exists(d):
+                dir_files = folder_paths.filter_files_content_types(
+                    os.listdir(d), ["audio", "video"]
+                    )
+                dir_files = [os.path.join(dir_short, s) for s in dir_files]
+                files.extend(dir_files)
         filesWithTxt = []
         for file in files:
             txtFile = F5TTSCreate.get_txt_file_path(file)
