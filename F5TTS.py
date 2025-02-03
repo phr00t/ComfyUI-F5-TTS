@@ -3,13 +3,13 @@ import os.path
 from .Install import Install
 import subprocess
 import wave
+import math
 import torch
 import torchaudio
 import hashlib
 import folder_paths
 import tempfile
 import soundfile as sf
-import shutil
 import sys
 import numpy as np
 import re
@@ -35,6 +35,7 @@ class F5TTSCreate:
     model_types = ["F5", "F5-HI", "F5-JP", "F5-FR", "E2"]
     vocoder_types = ["vocos", "bigvgan"]
     tooltip_seed = "Seed. -1 = random"
+    tooltip_speed = "Speed. >1.0 slower. <1.0 faster"
 
     def get_model_types():
         model_types = F5TTSCreate.model_types[:]
@@ -283,6 +284,19 @@ class F5TTSCreate:
             vocoder, mel_spec_type=mel_spec_type,
         )
 
+    def time_shift(self, audio, speed):
+        import torch_time_stretch
+        rate = audio['sample_rate']
+        waveform = audio['waveform']
+
+        new_waveform = torch_time_stretch.time_stretch(
+            waveform,
+            torch_time_stretch.Fraction(math.floor(speed*100), 100),
+            rate
+        )
+
+        return {"waveform": new_waveform, "sample_rate": rate}
+
 
 class F5TTSAudioInputs:
     def __init__(self):
@@ -307,6 +321,10 @@ class F5TTSAudioInputs:
                 "model": (model_types,),
                 "vocoder": (F5TTSCreate.vocoder_types, {
                     "tooltip": "Most models are usally vocos",
+                }),
+                "speed": ("FLOAT", {
+                    "default": 1.0,
+                    "tooltip": F5TTSCreate.tooltip_speed,
                 }),
             },
         }
@@ -352,7 +370,8 @@ class F5TTSAudioInputs:
     def create(
         self,
         sample_audio, sample_text,
-        speech, seed=-1, model="F5", vocoder="vocos"
+        speech, seed=-1, model="F5", vocoder="vocos",
+        speed=1
     ):
         try:
             main_voice = self.load_voice_from_input(sample_audio, sample_text)
@@ -366,12 +385,17 @@ class F5TTSAudioInputs:
             audio = f5ttsCreate.create(
                 voices, chunks, seed, model, vocoder
             )
+            if speed != 1:
+                audio = f5ttsCreate.time_shift(audio, speed)
         finally:
             self.remove_wave_file()
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample_audio, sample_text, speech, seed, model, vocoder):
+    def IS_CHANGED(
+        s, sample_audio, sample_text,
+        speech, seed, model, vocoder, speed
+    ):
         m = hashlib.sha256()
         m.update(sample_text)
         m.update(sample_audio)
@@ -379,12 +403,13 @@ class F5TTSAudioInputs:
         m.update(seed)
         m.update(model)
         m.update(vocoder)
+        m.update(speed)
         return m.digest().hex()
 
 
 class F5TTSAudio:
     def __init__(self):
-        self.use_cli = False
+        pass
 
     @classmethod
     def INPUT_TYPES(s):
@@ -427,6 +452,10 @@ class F5TTSAudio:
                 "model": (model_types,),
                 "vocoder": (F5TTSCreate.vocoder_types, {
                     "tooltip": "Most models are usally vocos",
+                }),
+                "speed": ("FLOAT", {
+                    "default": 1.0,
+                    "tooltip": F5TTSCreate.tooltip_speed,
                 }),
             }
         }
@@ -486,32 +515,29 @@ class F5TTSAudio:
             voices[voice_name] = self.load_voice_from_file(sample_file)
         return voices
 
-    def create(self, sample, speech, seed=-2, model="F5", vocoder="vocos"):
+    def create(
+       self,
+       sample, speech, seed=-2, model="F5", vocoder="vocos",
+       speed=1
+    ):
         # vocoder = "vocos"
         # Install.check_install()
         main_voice = self.load_voice_from_file(sample)
 
         f5ttsCreate = F5TTSCreate()
-        if self.use_cli:
-            # working...
-            output_dir = tempfile.mkdtemp()
-            audio_path = folder_paths.get_annotated_filepath(sample)
-            audio = self.create_with_cli(
-                audio_path, main_voice["ref_text"],
-                speech, output_dir
-                )
-            shutil.rmtree(output_dir)
-        else:
-            chunks = f5ttsCreate.split_text(speech)
-            voice_names = f5ttsCreate.get_voice_names(chunks)
-            voices = self.load_voices_from_files(sample, voice_names)
-            voices['main'] = main_voice
 
-            audio = f5ttsCreate.create(voices, chunks, seed, model, vocoder)
+        chunks = f5ttsCreate.split_text(speech)
+        voice_names = f5ttsCreate.get_voice_names(chunks)
+        voices = self.load_voices_from_files(sample, voice_names)
+        voices['main'] = main_voice
+
+        audio = f5ttsCreate.create(voices, chunks, seed, model, vocoder)
+        if speed != 1:
+            audio = f5ttsCreate.time_shift(audio, speed)
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample, speech, seed, model, vocoder):
+    def IS_CHANGED(s, sample, speech, seed, model, vocoder, speed):
         m = hashlib.sha256()
         audio_path = folder_paths.get_annotated_filepath(sample)
         audio_txt_path = F5TTSCreate.get_txt_file_path(audio_path)
@@ -524,4 +550,5 @@ class F5TTSAudio:
         m.update(seed)
         m.update(model)
         m.update(vocoder)
+        m.update(speed)
         return m.digest().hex()
