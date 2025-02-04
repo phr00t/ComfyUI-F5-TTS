@@ -15,6 +15,7 @@ import numpy as np
 import re
 import io
 from comfy.utils import ProgressBar
+import comfy
 from cached_path import cached_path
 f5tts_path = os.path.join(Install.f5TTSPath, "src")
 sys.path.insert(0, f5tts_path)
@@ -249,7 +250,8 @@ class F5TTSCreate:
             print("text:"+text)
             audio, final_sample_rate, spectragram = infer_process(
                 ref_audio, ref_text, gen_text, model_obj,
-                vocoder=vocoder, mel_spec_type=mel_spec_type
+                vocoder=vocoder, mel_spec_type=mel_spec_type,
+                device=comfy.model_management.get_torch_device()
                 )
             generated_audio_segments.append(audio)
             frame_rate = final_sample_rate
