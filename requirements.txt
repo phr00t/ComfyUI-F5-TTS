@@ -20,4 +20,4 @@ transformers
 vocos
 wandb
 x_transformers>=1.31.14
-torch-time-shift
+torch-time-stretch
