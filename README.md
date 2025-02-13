@@ -15,6 +15,7 @@ You can use the examples here...
 * [Simple workflow](examples/simple_ComfyUI_F5TTS_workflow.json)
 * [Workflow with input audio only, using OpenAI's Whisper to get the text](examples/F5TTS_whisper_workflow.json)
 * [Workflow with all features](examples/F5TTS-test-all.json)
+* [Effortlessly Clone Your Own Voice by using ComfyUI and Almost in Real-Time! (Step-by-Step Tutorial & Workflow Included)](https://www.reddit.com/r/StableDiffusion/comments/1id8spa/effortlessly_clone_your_own_voice_by_using/)
 
 
 ### Other languages / custom models...

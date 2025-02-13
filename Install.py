@@ -7,11 +7,12 @@ class Install:
 
     @staticmethod
     def check_install():
-        if not os.path.exists(Install.f5TTSPath):
+        if not os.path.exists(os.path.join(Install.f5TTSPath, "README.md")):
             Install.install()
 
     @staticmethod
     def install():
+        print("F5TTS. Checking out submodules")
         subprocess.run(
             ['git', 'submodule', 'update', '--init', '--recursive'],
             cwd=os.path.dirname(__file__),

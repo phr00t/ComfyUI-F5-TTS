@@ -17,6 +17,10 @@ import io
 from comfy.utils import ProgressBar
 import comfy
 from cached_path import cached_path
+
+# check_install will download the f5-tts if the submodule wasn't downloaded.
+Install.check_install()
+
 f5tts_path = os.path.join(Install.f5TTSPath, "src")
 sys.path.insert(0, f5tts_path)
 from f5_tts.model import DiT,UNetT # noqa E402
