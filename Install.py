@@ -13,6 +13,14 @@ class Install:
     @staticmethod
     def install():
         print("F5TTS. Checking out submodules")
+        try:
+            import pygit2
+            repo_path = os.path.join(os.path.dirname(__file__))
+            repo = pygit2.Repository(repo_path)
+            submodules = pygit2.submodules.SubmoduleCollection(repo)
+            submodules.update(init=True)
+        except Exception as e:
+            print(f"pygit2 failed: {e}")
         subprocess.run(
             ['git', 'submodule', 'update', '--init', '--recursive'],
             cwd=os.path.dirname(__file__),
