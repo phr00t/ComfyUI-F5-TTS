@@ -28,12 +28,10 @@ from f5_tts.infer.utils_infer import ( # noqa E402
 )
 sys.path.remove(f5tts_path)
 
-Install.check_install()
-
 
 class F5TTSCreate:
     voice_reg = re.compile(r"\{([^\}]+)\}")
-    model_types = ["F5", "F5-HI", "F5-JP", "F5-FR", "E2"]
+    model_types = ["F5", "F5-HI", "F5-JP", "F5-FR", "F5-DE", "F5-IT", "F5-ES", "E2"]
     vocoder_types = ["vocos", "bigvgan"]
     tooltip_seed = "Seed. -1 = random"
     tooltip_speed = "Speed. >1.0 slower. <1.0 faster"
@@ -95,6 +93,9 @@ class F5TTSCreate:
             "F5-HI": self.load_f5_model_hi,
             "F5-JP": self.load_f5_model_jp,
             "F5-FR": self.load_f5_model_fr,
+            "F5-DE": self.load_f5_model_de,
+            "F5-IT": self.load_f5_model_it,
+            "F5-ES": self.load_f5_model_es,
             "E2": self.load_e2_model,
         }
 
@@ -164,6 +165,27 @@ class F5TTSCreate:
             "hf://RASPIAUDIO/F5-French-MixedSpeakers-reduced/model_1374000.pt", # noqa E501
             vocoder,
             "hf://RASPIAUDIO/F5-French-MixedSpeakers-reduced/vocab.txt" # noqa E501
+            )
+
+    def load_f5_model_de(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://aihpi/F5-TTS-German/F5TTS_Base/model_420000.safetensors", # noqa E501
+            vocoder,
+            "hf://aihpi/F5-TTS-German/vocab.txt" # noqa E501
+            )
+
+    def load_f5_model_it(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://alien79/F5-TTS-italian/model_159600.safetensors", # noqa E501
+            vocoder,
+            "hf://alien79/F5-TTS-italian/vocab.txt" # noqa E501
+            )
+
+    def load_f5_model_es(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://jpgallegoar/F5-Spanish/model_1200000.safetensors", # noqa E501
+            vocoder,
+            "hf://jpgallegoar/F5-Spanish/vocab.txt" # noqa E501
             )
 
     def cached_path(self, url):
