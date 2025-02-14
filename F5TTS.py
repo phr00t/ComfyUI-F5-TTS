@@ -146,14 +146,16 @@ class F5TTSCreate:
 
     def load_f5_model(self, vocoder):
         repo_name = "F5-TTS"
+        extension = "safetensors"
         if vocoder == "bigvgan":
             exp_name = "F5TTS_Base_bigvgan"
             ckpt_step = 1250000
+            extension = "pt"
         else:
             exp_name = "F5TTS_Base"
             ckpt_step = 1200000
         return self.load_f5_model_url(
-            f"hf://SWivid/{repo_name}/{exp_name}/model_{ckpt_step}.safetensors", # noqa E501
+            f"hf://SWivid/{repo_name}/{exp_name}/model_{ckpt_step}.{extension}", # noqa E501
             vocoder,
         )
 
