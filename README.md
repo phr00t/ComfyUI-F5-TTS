@@ -42,7 +42,7 @@ I haven't tried these...
 [Turkish](https://huggingface.co/marduk-ra/F5-TTS-Turkish)
 [Vietnamese](https://huggingface.co/yukiakai/F5-TTS-Vietnamese)
 
-### Multi voices...
+### Multi voices output...
 
 Put your sample voice files into the "input" folder like...
 ```
@@ -61,6 +61,10 @@ Then you can use prompts for different voices...
 {chipmunk} Please, I need more helium
 ```
 
+### Multi voice input...
+
+Put a sentence of voice 1 and a sentence from voice 2 into the input audio sample.  F5-TTS cuts the audio off at 15 seconds so don't make it too long.
+[Example](https://github.com/niknah/ComfyUI-F5-TTS/issues/29)
 
 ### BigVGAN models.
 
