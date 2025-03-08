@@ -2,8 +2,8 @@ from pathlib import Path
 import os.path
 from .Install import Install
 import subprocess
-import wave
 import math
+import wave
 import torch
 import torchaudio
 import hashlib
@@ -29,13 +29,23 @@ from f5_tts.infer.utils_infer import ( # noqa E402
     load_vocoder,
     preprocess_ref_audio_text,
     infer_process,
+    remove_silence_edges,
 )
 sys.path.remove(f5tts_path)
 
 
 class F5TTSCreate:
     voice_reg = re.compile(r"\{([^\}]+)\}")
-    model_types = ["F5", "F5-HI", "F5-JP", "F5-FR", "F5-DE", "F5-IT", "F5-ES", "E2"]
+    model_types = [
+        "F5",
+        "F5-HI",
+        "F5-JP",
+        "F5-FR",
+        "F5-DE",
+        "F5-IT",
+        "F5-ES",
+        "E2",
+    ]
     vocoder_types = ["vocos", "bigvgan"]
     tooltip_seed = "Seed. -1 = random"
     tooltip_speed = "Speed. >1.0 slower. <1.0 faster"
@@ -247,7 +257,8 @@ class F5TTSCreate:
         return (ema_model, vocoder, vocoder_name)
 
     def generate_audio(
-        self, voices, model_obj, chunks, seed, vocoder, mel_spec_type
+        self, voices, model_obj, chunks, seed, vocoder, mel_spec_type,
+        speed
     ):
         if seed >= 0:
             torch.manual_seed(seed)
@@ -279,7 +290,7 @@ class F5TTSCreate:
             audio, final_sample_rate, spectragram = infer_process(
                 ref_audio, ref_text, gen_text, model_obj,
                 vocoder=vocoder, mel_spec_type=mel_spec_type,
-                device=comfy.model_management.get_torch_device()
+                device=comfy.model_management.get_torch_device(),
                 )
             generated_audio_segments.append(audio)
             frame_rate = final_sample_rate
@@ -300,7 +311,8 @@ class F5TTSCreate:
         return audio
 
     def create(
-        self, voices, chunks, seed=-1, model="F5", vocoder_name="vocos"
+        self, voices, chunks, seed=-1, model="F5",
+        vocoder_name="vocos", speed=1
     ):
         (
             model_obj,
@@ -312,6 +324,7 @@ class F5TTSCreate:
             model_obj,
             chunks, seed,
             vocoder, mel_spec_type=mel_spec_type,
+            speed=speed,
         )
 
     def time_shift(self, audio, speed):
@@ -354,6 +367,7 @@ class F5TTSAudioInputs:
                 }),
                 "speed": ("FLOAT", {
                     "default": 1.0,
+                    "step": 0.01,
                     "tooltip": F5TTSCreate.tooltip_speed,
                 }),
             },
