@@ -139,7 +139,14 @@ class F5TTSCreate:
 
     def load_e2_model(self, vocoder):
         model_cls = UNetT
-        model_cfg = dict(dim=1024, depth=24, heads=16, ff_mult=4)
+        model_cfg = dict(
+            dim=1024,
+            depth=24,
+            heads=16,
+            ff_mult=4,
+            text_mask_padding=False,
+            pe_attn_head=1,
+            )
         repo_name = "E2-TTS"
         exp_name = "E2TTS_Base"
         ckpt_step = 1200000
@@ -219,8 +226,15 @@ class F5TTSCreate:
 
     def load_f5_model_hi(self, vocoder):
         model_cfg = dict(
-            dim=768, depth=18, heads=12,
-            ff_mult=2, text_dim=512, conv_layers=4
+            dim=768,
+            depth=18,
+            heads=12,
+            ff_mult=2,
+            text_dim=512,
+            text_mask_padding=False,
+            conv_layers=4,
+            pe_attn_head=1,
+            checkpoint_activations=False,
             )
         return self.load_f5_model_url(
             "hf://SPRINGLab/F5-Hindi-24KHz/model_2500000.safetensors",
@@ -236,8 +250,14 @@ class F5TTSCreate:
         model_cls = DiT
         if model_cfg is None:
             model_cfg = dict(
-                dim=1024, depth=22, heads=16,
-                ff_mult=2, text_dim=512, conv_layers=4
+                dim=1024,
+                depth=22,
+                heads=16,
+                ff_mult=2,
+                text_dim=512,
+                text_mask_padding=False,
+                conv_layers=4,
+                pe_attn_head=1,
                 )
 
         ckpt_file = str(self.cached_path(url)) # noqa E501
