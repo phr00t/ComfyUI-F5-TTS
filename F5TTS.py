@@ -298,16 +298,19 @@ class F5TTSCreate:
 
         if generated_audio_segments:
             final_wave = np.concatenate(generated_audio_segments)
-        wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        sf.write(wave_file.name, final_wave, frame_rate)
-        wave_file.close()
+        #if speed != 1.0:
+        #    final_wave = librosa.effects.time_stretch(final_wave, rate=speed)
+        # wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        # sf.write(wave_file.name, final_wave, frame_rate)
+        # wave_file.close()
 
-        waveform, sample_rate = torchaudio.load(wave_file.name)
+        # waveform, sample_rate = torchaudio.load(wave_file.name)
+        waveform = torch.from_numpy(final_wave).unsqueeze(0)
         audio = {
             "waveform": waveform.unsqueeze(0),
-            "sample_rate": sample_rate
+            "sample_rate": frame_rate
             }
-        os.unlink(wave_file.name)
+        # os.unlink(wave_file.name)
         return audio
 
     def create(
@@ -427,7 +430,7 @@ class F5TTSAudioInputs:
             voices['main'] = main_voice
 
             audio = f5ttsCreate.create(
-                voices, chunks, seed, model, vocoder
+                voices, chunks, seed, model, vocoder, speed
             )
             if speed != 1:
                 audio = f5ttsCreate.time_shift(audio, speed)
@@ -575,7 +578,7 @@ class F5TTSAudio:
         voices = self.load_voices_from_files(sample, voice_names)
         voices['main'] = main_voice
 
-        audio = f5ttsCreate.create(voices, chunks, seed, model, vocoder)
+        audio = f5ttsCreate.create(voices, chunks, seed, model, vocoder, speed)
         if speed != 1:
             audio = f5ttsCreate.time_shift(audio, speed)
         return (audio, )
