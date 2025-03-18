@@ -6,8 +6,12 @@ class Install:
     f5TTSPath = os.path.join(os.path.dirname(__file__), "F5-TTS")
 
     @staticmethod
+    def has_submodule_file():
+        return os.path.exists(os.path.join(Install.f5TTSPath, "README.md"))
+
+    @staticmethod
     def check_install():
-        if not os.path.exists(os.path.join(Install.f5TTSPath, "README.md")):
+        if not Install.has_submodule_file():
             Install.install()
 
     @staticmethod
@@ -26,6 +30,8 @@ class Install:
             cwd=os.path.dirname(__file__),
             shell=True,
             )
+        if not Install.has_submodule_file():
+            print("F5TTS. Something is wrong with your git installation.  It is unable to checkout submodules.  You can install the latest from https://git-scm.com/downloads")  # noqa: E501
 
     @staticmethod
     def clone():

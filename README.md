@@ -98,3 +98,6 @@ pip install -r requirements.txt
 ```
 
 
+### Changes
+
+1.0.20: Added model\_type

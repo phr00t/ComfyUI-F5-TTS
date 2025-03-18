@@ -23,3 +23,4 @@ x_transformers>=1.31.14
 torch-time-stretch
 pygit2
 ffmpeg
+omegaconf
