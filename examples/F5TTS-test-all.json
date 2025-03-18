@@ -1,42 +1,7 @@
 {
-  "last_node_id": 31,
+  "last_node_id": 32,
   "last_link_id": 21,
   "nodes": [
-    {
-      "id": 4,
-      "type": "LoadAudio",
-      "pos": [
-        241,
-        146
-      ],
-      "size": [
-        315,
-        124
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "AUDIO",
-          "type": "AUDIO",
-          "links": [
-            6,
-            16
-          ],
-          "slot_index": 0
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "LoadAudio"
-      },
-      "widgets_values": [
-        "F5TTS_test_en_1_ref_short.wav",
-        null,
-        ""
-      ]
-    },
     {
       "id": 13,
       "type": "Apply Whisper",
@@ -49,7 +14,7 @@
         98
       ],
       "flags": {},
-      "order": 7,
+      "order": 13,
       "mode": 0,
       "inputs": [
         {
@@ -79,6 +44,8 @@
         }
       ],
       "properties": {
+        "cnr_id": "whisper",
+        "ver": "edd1a485acf5e1e14835fdf8c4af982c0eaf115f",
         "Node name for S&R": "Apply Whisper"
       },
       "widgets_values": [
@@ -86,33 +53,20 @@
       ]
     },
     {
-      "id": 26,
-      "type": "F5TTSAudioInputs",
+      "id": 27,
+      "type": "F5TTSAudio",
       "pos": [
-        1025,
-        155
+        474.66900634765625,
+        -1315.3310546875
       ],
       "size": [
         400,
-        236
+        256
       ],
       "flags": {},
-      "order": 14,
+      "order": 0,
       "mode": 0,
       "inputs": [
-        {
-          "name": "sample_audio",
-          "type": "AUDIO",
-          "link": 16
-        },
-        {
-          "name": "sample_text",
-          "type": "STRING",
-          "link": 17,
-          "widget": {
-            "name": "sample_text"
-          }
-        },
         {
           "name": "model",
           "type": 0,
@@ -124,21 +78,24 @@
           "name": "AUDIO",
           "type": "AUDIO",
           "links": [
-            18
+            19
           ]
         }
       ],
       "properties": {
-        "Node name for S&R": "F5TTSAudioInputs"
+        "cnr_id": "comfyui-f5-tts",
+        "ver": "5a1994362d53320ba7a4e3bc390d3136132af9be",
+        "Node name for S&R": "F5TTSAudio"
       },
       "widgets_values": [
-        "Text of sample_audio",
-        "This is what I want to say",
-        117,
+        "fr_example.wav",
+        "Parler français comme une vache espagnole",
+        651,
         "randomize",
-        "F5",
-        "vocos",
-        1
+        "F5-FR",
+        "auto",
+        1,
+        "F5TTS_Base"
       ]
     },
     {
@@ -150,7 +107,7 @@
       ],
       "size": [
         400,
-        220
+        256
       ],
       "flags": {},
       "order": 1,
@@ -172,16 +129,19 @@
         }
       ],
       "properties": {
+        "cnr_id": "comfyui-f5-tts",
+        "ver": "5a1994362d53320ba7a4e3bc390d3136132af9be",
         "Node name for S&R": "F5TTSAudio"
       },
       "widgets_values": [
         "audio\\de_example.wav",
         "Nun ist der Ofen aus",
-        868,
+        948,
         "randomize",
         "model://de_model_615000.safetensors",
         "bigvgan",
-        1.5
+        1.5,
+        "F5TTS_Base"
       ]
     },
     {
@@ -216,16 +176,78 @@
         }
       ],
       "properties": {
+        "cnr_id": "comfyui-f5-tts",
+        "ver": "5a1994362d53320ba7a4e3bc390d3136132af9be",
         "Node name for S&R": "F5TTSAudio"
       },
       "widgets_values": [
         "F5TTS_test_en_1_ref_short.wav",
         "{main} Hello World this is the end\n{deep} This is the narrator\n{chipmunk} Please, I need more helium",
-        72,
+        1743,
         "randomize",
         "F5",
-        "vocos",
-        1
+        "auto",
+        1,
+        "F5TTS_Base"
+      ]
+    },
+    {
+      "id": 26,
+      "type": "F5TTSAudioInputs",
+      "pos": [
+        1025,
+        155
+      ],
+      "size": [
+        400,
+        296
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "sample_audio",
+          "type": "AUDIO",
+          "link": 16
+        },
+        {
+          "name": "sample_text",
+          "type": "STRING",
+          "widget": {
+            "name": "sample_text"
+          },
+          "link": 17
+        },
+        {
+          "name": "model",
+          "type": 0,
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-f5-tts",
+        "ver": "5a1994362d53320ba7a4e3bc390d3136132af9be",
+        "Node name for S&R": "F5TTSAudioInputs"
+      },
+      "widgets_values": [
+        "Text of sample_audio",
+        "This is what I want to say",
+        1260,
+        "randomize",
+        "F5",
+        "auto",
+        1,
+        "F5TTS_Base"
       ]
     },
     {
@@ -237,7 +259,7 @@
       ],
       "size": [
         400,
-        220
+        256
       ],
       "flags": {},
       "order": 3,
@@ -260,16 +282,19 @@
         }
       ],
       "properties": {
+        "cnr_id": "comfyui-f5-tts",
+        "ver": "5a1994362d53320ba7a4e3bc390d3136132af9be",
         "Node name for S&R": "F5TTSAudio"
       },
       "widgets_values": [
         "F5TTS_test_en_1_ref_short.wav",
         "This is what I want to say",
-        1550,
+        1344,
         "randomize",
         "E2",
         "vocos",
-        1
+        1,
+        "F5TTS_Base"
       ]
     },
     {
@@ -281,7 +306,7 @@
       ],
       "size": [
         400,
-        220
+        256
       ],
       "flags": {},
       "order": 4,
@@ -304,16 +329,19 @@
         }
       ],
       "properties": {
+        "cnr_id": "comfyui-f5-tts",
+        "ver": "5a1994362d53320ba7a4e3bc390d3136132af9be",
         "Node name for S&R": "F5TTSAudio"
       },
       "widgets_values": [
         "F5TTS_test_en_1_ref_short.wav",
         "This is what I want to say",
-        1194,
+        591,
         "randomize",
         "F5",
-        "vocos",
-        1
+        "auto",
+        1,
+        "F5TTS_Base"
       ]
     },
     {
@@ -325,7 +353,7 @@
       ],
       "size": [
         400,
-        220
+        256
       ],
       "flags": {},
       "order": 5,
@@ -348,146 +376,19 @@
         }
       ],
       "properties": {
+        "cnr_id": "comfyui-f5-tts",
+        "ver": "5a1994362d53320ba7a4e3bc390d3136132af9be",
         "Node name for S&R": "F5TTSAudio"
       },
       "widgets_values": [
         "jp_example2.wav",
         "が目に入っても痛くない。",
-        106,
+        277,
         "randomize",
         "model://jp.pt",
-        "vocos",
-        1
-      ]
-    },
-    {
-      "id": 27,
-      "type": "F5TTSAudio",
-      "pos": [
-        474.66900634765625,
-        -1315.3310546875
-      ],
-      "size": [
-        400,
-        220
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": 0,
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "AUDIO",
-          "type": "AUDIO",
-          "links": [
-            19
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "F5TTSAudio"
-      },
-      "widgets_values": [
-        "fr_example.wav",
-        "Parler français comme une vache espagnole",
-        1501,
-        "randomize",
-        "F5-FR",
-        "vocos",
-        1
-      ]
-    },
-    {
-      "id": 24,
-      "type": "PreviewAudio",
-      "pos": [
-        982.6690063476562,
-        -1314.3310546875
-      ],
-      "size": [
-        320,
-        80
-      ],
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 19
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "PreviewAudio"
-      },
-      "widgets_values": [
-        null
-      ]
-    },
-    {
-      "id": 21,
-      "type": "PreviewAudio",
-      "pos": [
-        902.2767944335938,
-        -772.4797973632812
-      ],
-      "size": [
-        320,
-        80
-      ],
-      "flags": {},
-      "order": 12,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 15
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "PreviewAudio"
-      },
-      "widgets_values": [
-        null
-      ]
-    },
-    {
-      "id": 2,
-      "type": "PreviewAudio",
-      "pos": [
-        880,
-        -320
-      ],
-      "size": [
-        315,
-        76
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 8
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "PreviewAudio"
-      },
-      "widgets_values": [
-        null
+        "auto",
+        1,
+        "F5TTS_Base"
       ]
     },
     {
@@ -499,7 +400,7 @@
       ],
       "size": [
         315,
-        76
+        88
       ],
       "flags": {},
       "order": 9,
@@ -513,10 +414,49 @@
       ],
       "outputs": [],
       "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
         "Node name for S&R": "PreviewAudio"
       },
       "widgets_values": [
-        null
+        ""
+      ]
+    },
+    {
+      "id": 4,
+      "type": "LoadAudio",
+      "pos": [
+        241,
+        146
+      ],
+      "size": [
+        315,
+        136
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            6,
+            16
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "F5TTS_test_en_1_ref_short.wav",
+        "",
+        ""
       ]
     },
     {
@@ -528,7 +468,7 @@
       ],
       "size": [
         315,
-        76
+        88
       ],
       "flags": {},
       "order": 15,
@@ -542,10 +482,43 @@
       ],
       "outputs": [],
       "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
         "Node name for S&R": "PreviewAudio"
       },
       "widgets_values": [
-        null
+        ""
+      ]
+    },
+    {
+      "id": 2,
+      "type": "PreviewAudio",
+      "pos": [
+        880,
+        -320
+      ],
+      "size": [
+        315,
+        88
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 8
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": [
+        ""
       ]
     },
     {
@@ -557,7 +530,7 @@
       ],
       "size": [
         320,
-        80
+        88
       ],
       "flags": {},
       "order": 10,
@@ -571,10 +544,74 @@
       ],
       "outputs": [],
       "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
         "Node name for S&R": "PreviewAudio"
       },
       "widgets_values": [
-        null
+        ""
+      ]
+    },
+    {
+      "id": 21,
+      "type": "PreviewAudio",
+      "pos": [
+        902.2767944335938,
+        -772.4797973632812
+      ],
+      "size": [
+        320,
+        88
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 15
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 24,
+      "type": "PreviewAudio",
+      "pos": [
+        982.6690063476562,
+        -1314.3310546875
+      ],
+      "size": [
+        320,
+        88
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 19
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": [
+        ""
       ]
     },
     {
@@ -586,7 +623,7 @@
       ],
       "size": [
         320,
-        80
+        88
       ],
       "flags": {},
       "order": 8,
@@ -600,10 +637,12 @@
       ],
       "outputs": [],
       "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.26",
         "Node name for S&R": "PreviewAudio"
       },
       "widgets_values": [
-        null
+        ""
       ]
     }
   ],
@@ -722,8 +761,8 @@
       "bounding": [
         329.2184753417969,
         -431.1173095703125,
-        921.3973999023438,
-        344.56597900390625
+        926.7699584960938,
+        390.23291015625
       ],
       "color": "#3f789e",
       "font_size": 22,
@@ -761,8 +800,8 @@
       "bounding": [
         1416.9296875,
         -419.2970886230469,
-        874.0676879882812,
-        371.88140869140625
+        880.7279052734375,
+        402.2224426269531
       ],
       "color": "#3f789e",
       "font_size": 22,
@@ -785,17 +824,21 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.740024994425818,
+      "scale": 1.1167815779424846,
       "offset": [
-        -180.40933541770005,
-        373.06382191336786
+        -223.98590438136839,
+        2047.209015678969
       ]
     },
     "node_versions": {
       "comfy-core": "0.3.12",
       "ComfyUI-Whisper": "edd1a485acf5e1e14835fdf8c4af982c0eaf115f",
       "ComfyUI-F5-TTS": "e136d0b657a4d1adff8aa0651e714e1a557dac28"
-    }
+    },
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
   },
   "version": 0.4
 }
