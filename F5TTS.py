@@ -234,7 +234,7 @@ class F5TTSCreate:
             return None
         return str(cached_path(url)) # noqa E501
 
-    def load_f5_model_hi(self, vocoder):
+    def load_f5_model_hi_old(self, vocoder):
         model_cfg = dict(
             dim=768,
             depth=18,
@@ -251,6 +251,13 @@ class F5TTSCreate:
             "vocos",
             "hf://SPRINGLab/F5-Hindi-24KHz/vocab.txt",
             model_cfg=model_cfg,
+            )
+
+    def load_f5_model_hi(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://ShriAishu/hindiSpeech/model.safetensors", # noqa E501
+            vocoder,
+            "hf://ShriAishu/hindiSpeech/checkpoints/vocab.txt", # noqa E501
             )
 
     def load_f5_model_url(
@@ -434,6 +441,7 @@ class F5TTSAudioInputs:
 
     RETURN_TYPES = ("AUDIO", )
     FUNCTION = "create"
+    DESCRIPTION = "From one audio input.  (Does not support multi voice)"
 
     def load_voice_from_input(self, sample_audio, sample_text):
         wave_file = tempfile.NamedTemporaryFile(
@@ -574,6 +582,7 @@ class F5TTSAudio:
 
     RETURN_TYPES = ("AUDIO", )
     FUNCTION = "create"
+    DESCRIPTION = "Put audio + txt into inputs/F5-TTS. (Supports Multi Voice)"
 
     def load_voice_from_file(self, sample):
         input_dir = folder_paths.get_input_directory()

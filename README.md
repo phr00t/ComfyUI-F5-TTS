@@ -43,8 +43,11 @@ I haven't tried these...
 [Spanish](https://huggingface.co/jpgallegoar/F5-Spanish)
 [Turkish](https://huggingface.co/marduk-ra/F5-TTS-Turkish)
 [Vietnamese](https://huggingface.co/yukiakai/F5-TTS-Vietnamese)
+[Assamese, Bengali, Gujarati, Hindi, Kannada, Malayalam, Marathi, Odia, Punjabi, Tamil, Telugu](https://huggingface.co/ShriAishu/hindiSpeech)
 
 ### Multi voices output...
+
+Use the `F5-TTS Audio` node(not the from input node).
 
 Put your sample voice files into the "input" folder like...
 ```
