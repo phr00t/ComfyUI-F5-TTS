@@ -14,8 +14,8 @@ Steps to reproduce the behavior:
 3. Scroll down to '....'
 4. See error
 
-**Log files**
-Add log files to help explain your problem.
+**Workflow & log files**
+Add your workflow & log files to help explain your problem.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. windows, linux, etc.]
