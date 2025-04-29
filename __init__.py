@@ -7,5 +7,5 @@ NODE_CLASS_MAPPINGS = {
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "F5TTSAudio": "F5-TTS Audio",
-    "F5TTSAudioInputs": "F5-TTS Audio from inputs"
+    "F5TTSAudioInputs": "F5-TTS Audio from input"
 }

@@ -1,40 +1,55 @@
 from pathlib import Path
 import os.path
 from .Install import Install
-import subprocess
-import wave
+import math
 import torch
 import torchaudio
 import hashlib
 import folder_paths
 import tempfile
-import soundfile as sf
-import shutil
 import sys
 import numpy as np
 import re
 import io
+from omegaconf import OmegaConf
 from comfy.utils import ProgressBar
+import comfy
 from cached_path import cached_path
-sys.path.append(os.path.join(Install.f5TTSPath, "src"))
+
+# check_install will download the f5-tts if the submodule wasn't downloaded.
+Install.check_install()
+
+f5tts_path = os.path.join(Install.f5TTSPath, "src")
+sys.path.insert(0, f5tts_path)
 from f5_tts.model import DiT,UNetT # noqa E402
 from f5_tts.infer.utils_infer import ( # noqa E402
     load_model,
     load_vocoder,
     preprocess_ref_audio_text,
     infer_process,
+    remove_silence_edges,
 )
-sys.path.pop()
+sys.path.remove(f5tts_path)
 
 
 class F5TTSCreate:
     voice_reg = re.compile(r"\{([^\}]+)\}")
-    model_types = ["F5", "F5-HI", "F5-JP", "F5-FR", "E2"]
-    vocoder_types = ["vocos", "bigvgan"]
+    model_names = [
+        "F5",
+        "F5-HI",
+        "F5-JP",
+        "F5-FR",
+        "F5-DE",
+        "F5-IT",
+        "F5-ES",
+        "E2",
+    ]
+    vocoder_types = ["auto", "vocos", "bigvgan"]
     tooltip_seed = "Seed. -1 = random"
+    tooltip_speed = "Speed. >1.0 slower. <1.0 faster"
 
-    def get_model_types():
-        model_types = F5TTSCreate.model_types[:]
+    def get_model_names():
+        model_names = F5TTSCreate.model_names[:]
         models_path = folder_paths.get_folder_paths("checkpoints")
         for model_path in models_path:
             f5_model_path = os.path.join(model_path, 'F5-TTS')
@@ -52,8 +67,8 @@ class F5TTSCreate:
                         if (
                             os.path.isfile(txtFile)
                         ):
-                            model_types.append("model://"+file)
-        return model_types
+                            model_names.append("model://"+file)
+        return model_names
 
     @staticmethod
     def get_txt_file_path(file):
@@ -90,6 +105,9 @@ class F5TTSCreate:
             "F5-HI": self.load_f5_model_hi,
             "F5-JP": self.load_f5_model_jp,
             "F5-FR": self.load_f5_model_fr,
+            "F5-DE": self.load_f5_model_de,
+            "F5-IT": self.load_f5_model_it,
+            "F5-ES": self.load_f5_model_es,
             "E2": self.load_e2_model,
         }
 
@@ -100,14 +118,29 @@ class F5TTSCreate:
             os.path.join(Install.f5TTSPath, "checkpoints/bigvgan_v2_24khz_100band_256x") # noqa E501
 
     def load_vocoder(self,  vocoder_name):
-        return load_vocoder(vocoder_name=vocoder_name)
+        sys.path.insert(0, f5tts_path)
+        vocoder = load_vocoder(vocoder_name=vocoder_name)
+        sys.path.remove(f5tts_path)
+        return vocoder
 
-    def load_model(self, model, vocoder_name):
+    def load_model(self, model, vocoder_name, model_type):
         model_funcs = self.get_model_funcs()
         if model in model_funcs:
+            if vocoder_name == 'auto':
+                vocoder_name = 'vocos'
             return model_funcs[model](vocoder_name)
         else:
-            return self.load_f5_model_url(model, vocoder_name)
+            config_path = F5TTSCreate.get_config_path()
+            model_cfg = OmegaConf.load(
+                os.path.join(config_path, model_type + ".yaml")
+                ).model
+            if vocoder_name == 'auto':
+                vocoder_name = model_cfg.mel_spec.mel_spec_type
+
+            return self.load_f5_model_url(
+                model, vocoder_name,
+                model_cfg=model_cfg.arch
+                )
 
     def get_vocab_file(self):
         return os.path.join(
@@ -116,7 +149,14 @@ class F5TTSCreate:
 
     def load_e2_model(self, vocoder):
         model_cls = UNetT
-        model_cfg = dict(dim=1024, depth=24, heads=16, ff_mult=4)
+        model_cfg = dict(
+            dim=1024,
+            depth=24,
+            heads=16,
+            ff_mult=4,
+            text_mask_padding=False,
+            pe_attn_head=1,
+            )
         repo_name = "E2-TTS"
         exp_name = "E2TTS_Base"
         ckpt_step = 1200000
@@ -133,14 +173,16 @@ class F5TTSCreate:
 
     def load_f5_model(self, vocoder):
         repo_name = "F5-TTS"
+        extension = "safetensors"
         if vocoder == "bigvgan":
             exp_name = "F5TTS_Base_bigvgan"
             ckpt_step = 1250000
+            extension = "pt"
         else:
             exp_name = "F5TTS_Base"
             ckpt_step = 1200000
         return self.load_f5_model_url(
-            f"hf://SWivid/{repo_name}/{exp_name}/model_{ckpt_step}.safetensors", # noqa E501
+            f"hf://SWivid/{repo_name}/{exp_name}/model_{ckpt_step}.{extension}", # noqa E501
             vocoder,
         )
 
@@ -158,6 +200,27 @@ class F5TTSCreate:
             "hf://RASPIAUDIO/F5-French-MixedSpeakers-reduced/vocab.txt" # noqa E501
             )
 
+    def load_f5_model_de(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://aihpi/F5-TTS-German/F5TTS_Base/model_420000.safetensors", # noqa E501
+            vocoder,
+            "hf://aihpi/F5-TTS-German/vocab.txt" # noqa E501
+            )
+
+    def load_f5_model_it(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://alien79/F5-TTS-italian/model_159600.safetensors", # noqa E501
+            vocoder,
+            "hf://alien79/F5-TTS-italian/vocab.txt" # noqa E501
+            )
+
+    def load_f5_model_es(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://jpgallegoar/F5-Spanish/model_1200000.safetensors", # noqa E501
+            vocoder,
+            "hf://jpgallegoar/F5-Spanish/vocab.txt" # noqa E501
+            )
+
     def cached_path(self, url):
         if url.startswith("model:"):
             path = re.sub("^model:/*", "", url)
@@ -171,16 +234,30 @@ class F5TTSCreate:
             return None
         return str(cached_path(url)) # noqa E501
 
-    def load_f5_model_hi(self, vocoder):
+    def load_f5_model_hi_old(self, vocoder):
         model_cfg = dict(
-            dim=768, depth=18, heads=12,
-            ff_mult=2, text_dim=512, conv_layers=4
+            dim=768,
+            depth=18,
+            heads=12,
+            ff_mult=2,
+            text_dim=512,
+            text_mask_padding=False,
+            conv_layers=4,
+            pe_attn_head=1,
+            checkpoint_activations=False,
             )
         return self.load_f5_model_url(
             "hf://SPRINGLab/F5-Hindi-24KHz/model_2500000.safetensors",
             "vocos",
             "hf://SPRINGLab/F5-Hindi-24KHz/vocab.txt",
             model_cfg=model_cfg,
+            )
+
+    def load_f5_model_hi(self, vocoder):
+        return self.load_f5_model_url(
+            "hf://ShriAishu/hindiSpeech/model.safetensors", # noqa E501
+            vocoder,
+            "hf://ShriAishu/hindiSpeech/checkpoints/vocab.txt", # noqa E501
             )
 
     def load_f5_model_url(
@@ -190,8 +267,14 @@ class F5TTSCreate:
         model_cls = DiT
         if model_cfg is None:
             model_cfg = dict(
-                dim=1024, depth=22, heads=16,
-                ff_mult=2, text_dim=512, conv_layers=4
+                dim=1024,
+                depth=22,
+                heads=16,
+                ff_mult=2,
+                text_dim=512,
+                text_mask_padding=False,
+                conv_layers=4,
+                pe_attn_head=1,
                 )
 
         ckpt_file = str(self.cached_path(url)) # noqa E501
@@ -211,7 +294,8 @@ class F5TTSCreate:
         return (ema_model, vocoder, vocoder_name)
 
     def generate_audio(
-        self, voices, model_obj, chunks, seed, vocoder, mel_spec_type
+        self, voices, model_obj, chunks, seed, vocoder, mel_spec_type,
+        speed
     ):
         if seed >= 0:
             torch.manual_seed(seed)
@@ -242,7 +326,8 @@ class F5TTSCreate:
             print("text:"+text)
             audio, final_sample_rate, spectragram = infer_process(
                 ref_audio, ref_text, gen_text, model_obj,
-                vocoder=vocoder, mel_spec_type=mel_spec_type
+                vocoder=vocoder, mel_spec_type=mel_spec_type,
+                device=comfy.model_management.get_torch_device(),
                 )
             generated_audio_segments.append(audio)
             frame_rate = final_sample_rate
@@ -250,32 +335,68 @@ class F5TTSCreate:
 
         if generated_audio_segments:
             final_wave = np.concatenate(generated_audio_segments)
-        wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        sf.write(wave_file.name, final_wave, frame_rate)
-        wave_file.close()
+        # if speed != 1.0:
+        #    final_wave = librosa.effects.time_stretch(final_wave, rate=speed)
+        # wave_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+        # sf.write(wave_file.name, final_wave, frame_rate)
+        # wave_file.close()
 
-        waveform, sample_rate = torchaudio.load(wave_file.name)
+        # waveform, sample_rate = torchaudio.load(wave_file.name)
+        waveform = torch.from_numpy(final_wave).unsqueeze(0)
         audio = {
             "waveform": waveform.unsqueeze(0),
-            "sample_rate": sample_rate
+            "sample_rate": frame_rate
             }
-        os.unlink(wave_file.name)
+        # os.unlink(wave_file.name)
         return audio
 
     def create(
-        self, voices, chunks, seed=-1, model="F5", vocoder_name="vocos"
+        self, voices, chunks, seed=-1, model="F5",
+        vocoder_name="vocos", speed=1,
+        model_type='F5TTS_Base'
     ):
         (
             model_obj,
             vocoder,
             mel_spec_type
-        ) = self.load_model(model, vocoder_name)
+        ) = self.load_model(model, vocoder_name, model_type)
         return self.generate_audio(
             voices,
             model_obj,
             chunks, seed,
             vocoder, mel_spec_type=mel_spec_type,
+            speed=speed,
         )
+
+    def time_shift(self, audio, speed):
+        import torch_time_stretch
+        rate = audio['sample_rate']
+        waveform = audio['waveform']
+
+        new_waveform = torch_time_stretch.time_stretch(
+            waveform,
+            torch_time_stretch.Fraction(math.floor(speed*100), 100),
+            rate
+        )
+
+        return {"waveform": new_waveform, "sample_rate": rate}
+
+    @staticmethod
+    def get_config_path():
+        return os.path.join(
+            Install.f5TTSPath,
+            'src/f5_tts/configs'
+            )
+
+    @staticmethod
+    def get_configs():
+        config_path = F5TTSCreate.get_config_path()
+        configs = []
+        for file in os.listdir(config_path):
+            p = Path(file)
+            if file.endswith('.yaml'):
+                configs.append(p.stem)
+        return configs
 
 
 class F5TTSAudioInputs:
@@ -284,7 +405,8 @@ class F5TTSAudioInputs:
 
     @classmethod
     def INPUT_TYPES(s):
-        model_types = F5TTSCreate.get_model_types()
+        model_names = F5TTSCreate.get_model_names()
+        model_types = F5TTSCreate.get_configs()
         return {
             "required": {
                 "sample_audio": ("AUDIO",),
@@ -298,8 +420,20 @@ class F5TTSAudioInputs:
                     "default": 1, "min": -1,
                     "tooltip": F5TTSCreate.tooltip_seed,
                 }),
-                "model": (model_types,),
-                # "vocoder": (F5TTSCreate.vocoder_types,),
+                "model": (model_names,),
+                "vocoder": (F5TTSCreate.vocoder_types, {
+                    "tooltip": "Auto will be set by model_type. Most models are usually vocos.",  # noqa: E501
+                    "default": "auto",
+                }),
+                "speed": ("FLOAT", {
+                    "default": 1.0,
+                    "step": 0.01,
+                    "tooltip": F5TTSCreate.tooltip_speed,
+                }),
+                "model_type": (model_types, {
+                    "tooltip": "Type of model",
+                    "default": 'F5TTS_Base',
+                }),
             },
         }
 
@@ -307,6 +441,7 @@ class F5TTSAudioInputs:
 
     RETURN_TYPES = ("AUDIO", )
     FUNCTION = "create"
+    DESCRIPTION = "From one audio input.  (Does not support multi voice)"
 
     def load_voice_from_input(self, sample_audio, sample_text):
         wave_file = tempfile.NamedTemporaryFile(
@@ -342,9 +477,12 @@ class F5TTSAudioInputs:
                 print(e)
 
     def create(
-        self, sample_audio, sample_text, speech, seed=-1, model="F5"
+        self,
+        sample_audio, sample_text,
+        speech, seed=-1, model="F5", vocoder="vocos",
+        speed=1,
+        model_type=None,
     ):
-        vocoder = "vocos"
         try:
             main_voice = self.load_voice_from_input(sample_audio, sample_text)
 
@@ -355,26 +493,36 @@ class F5TTSAudioInputs:
             voices['main'] = main_voice
 
             audio = f5ttsCreate.create(
-                voices, chunks, seed, model, vocoder
+                voices, chunks, seed, model, vocoder, speed,
+                model_type
             )
+            if speed != 1:
+                audio = f5ttsCreate.time_shift(audio, speed)
         finally:
             self.remove_wave_file()
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample_audio, sample_text, speech, seed, model):
+    def IS_CHANGED(
+        s, sample_audio, sample_text,
+        speech, seed, model, vocoder, speed,
+        model_type
+    ):
         m = hashlib.sha256()
         m.update(sample_text)
         m.update(sample_audio)
         m.update(speech)
         m.update(seed)
         m.update(model)
+        m.update(vocoder)
+        m.update(speed)
+        m.update(model_type)
         return m.digest().hex()
 
 
 class F5TTSAudio:
     def __init__(self):
-        self.use_cli = False
+        pass
 
     @classmethod
     def INPUT_TYPES(s):
@@ -389,7 +537,8 @@ class F5TTSAudio:
                 filesWithTxt.append(file)
         filesWithTxt = sorted(filesWithTxt)
 
-        model_types = F5TTSCreate.get_model_types()
+        model_names = F5TTSCreate.get_model_names()
+        model_types = F5TTSCreate.get_configs()
 
         return {
             "required": {
@@ -403,8 +552,18 @@ class F5TTSAudio:
                     "default": 1, "min": -1,
                     "tooltip": F5TTSCreate.tooltip_seed,
                 }),
-                "model": (model_types,),
-                # "vocoder": (F5TTSCreate.vocoder_types,),
+                "model": (model_names,),
+                "vocoder": (F5TTSCreate.vocoder_types, {
+                    "tooltip": "Most models are usally vocos",
+                }),
+                "speed": ("FLOAT", {
+                    "default": 1.0,
+                    "tooltip": F5TTSCreate.tooltip_speed,
+                }),
+                "model_type": (model_types, {
+                    "tooltip": "Type of model",
+                    "default": 'F5TTS_Base',
+                }),
             }
         }
 
@@ -412,24 +571,7 @@ class F5TTSAudio:
 
     RETURN_TYPES = ("AUDIO", )
     FUNCTION = "create"
-
-    def create_with_cli(self, audio_path, audio_text, speech, output_dir):
-        subprocess.run(
-            [
-                "python", "inference-cli.py", "--model", "F5-TTS",
-                "--ref_audio", audio_path, "--ref_text", audio_text,
-                "--gen_text", speech,
-                "--output_dir", output_dir
-            ],
-            cwd=Install.f5TTSPath
-        )
-        output_audio = os.path.join(output_dir, "out.wav")
-        with wave.open(output_audio, "rb") as wave_file:
-            frame_rate = wave_file.getframerate()
-
-        waveform, sample_rate = torchaudio.load(output_audio)
-        audio = {"waveform": waveform.unsqueeze(0), "sample_rate": frame_rate}
-        return audio
+    DESCRIPTION = "Put audio + txt into inputs/F5-TTS. (Supports Multi Voice)"
 
     def load_voice_from_file(self, sample):
         if "voices" not in sample:
@@ -465,32 +607,37 @@ class F5TTSAudio:
             voices[voice_name] = self.load_voice_from_file(sample_file)
         return voices
 
-    def create(self, sample, speech, seed=-2, model="F5"):
-        vocoder = "vocos"
+    def create(
+        self,
+        sample, speech, seed=-2, model="F5", vocoder="vocos",
+        speed=1,
+        model_type=None,
+    ):
+        # vocoder = "vocos"
         # Install.check_install()
         main_voice = self.load_voice_from_file(sample)
 
         f5ttsCreate = F5TTSCreate()
-        if self.use_cli:
-            # working...
-            output_dir = tempfile.mkdtemp()
-            audio_path = folder_paths.get_annotated_filepath(sample)
-            audio = self.create_with_cli(
-                audio_path, main_voice["ref_text"],
-                speech, output_dir
-                )
-            shutil.rmtree(output_dir)
-        else:
-            chunks = f5ttsCreate.split_text(speech)
-            voice_names = f5ttsCreate.get_voice_names(chunks)
-            voices = self.load_voices_from_files(sample, voice_names)
-            voices['main'] = main_voice
 
-            audio = f5ttsCreate.create(voices, chunks, seed, model, vocoder)
+        chunks = f5ttsCreate.split_text(speech)
+        voice_names = f5ttsCreate.get_voice_names(chunks)
+        voices = self.load_voices_from_files(sample, voice_names)
+        voices['main'] = main_voice
+
+        audio = f5ttsCreate.create(
+            voices, chunks, seed, model, vocoder, speed,
+            model_type
+            )
+        if speed != 1:
+            audio = f5ttsCreate.time_shift(audio, speed)
         return (audio, )
 
     @classmethod
-    def IS_CHANGED(s, sample, speech, seed, model):
+    def IS_CHANGED(
+        s,
+        sample, speech, seed, model, vocoder, speed,
+        model_type
+    ):
         m = hashlib.sha256()
         audio_path = folder_paths.get_annotated_filepath(sample)
         audio_txt_path = F5TTSCreate.get_txt_file_path(audio_path)
@@ -502,4 +649,7 @@ class F5TTSAudio:
         m.update(speech)
         m.update(seed)
         m.update(model)
+        m.update(vocoder)
+        m.update(speed)
+        m.update(model_type)
         return m.digest().hex()
